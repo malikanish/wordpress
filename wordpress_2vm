@@ -1,0 +1,100 @@
+# Deploy WordPress and MySQL on Separate VMs
+
+# On VM 1 (WordPress Server)
+
+# Update package lists to get the latest versions
+sudo apt update
+
+# Upgrade installed packages to their latest versions
+sudo apt upgrade -y
+
+# Install Apache web server
+sudo apt install apache2
+
+# Install PHP and required extensions for WordPress
+sudo apt install php libapache2-mod-php php-mysql php-curl php-xml php-mbstring php-zip
+
+# Navigate to the /tmp directory
+cd /tmp
+
+# Download the latest WordPress package
+wget https://wordpress.org/latest.tar.gz
+
+# Extract WordPress archive
+tar xzvf latest.tar.gz
+
+# Move WordPress files to the web server root directory
+sudo mv wordpress/* /var/www/html/
+
+# Set correct ownership for WordPress files
+sudo chown -R www-data:www-data /var/www/html/
+
+# Set appropriate permissions for WordPress files
+sudo chmod -R 755 /var/www/html/
+
+# Navigate to WordPress directory
+cd /var/www/html
+
+# Copy the sample configuration file
+sudo cp wp-config-sample.php wp-config.php
+
+# Edit WordPress configuration file
+sudo nano wp-config.php
+
+# Update database connection details in wp-config.php
+# Replace 'your_db_server_ip' with the private IP of VM 2 (Database Server)
+define('DB_NAME', 'wordpress');
+define('DB_USER', 'wpuser');
+define('DB_PASSWORD', 'password');
+define('DB_HOST', 'your_db_server_ip');
+
+# Restart Apache to apply changes
+sudo systemctl restart apache2
+
+# Access WordPress installation page in a web browser
+# Go to http://your_wordpress_vm_ip
+
+# On VM 2 (Database Server)
+
+# Update package lists to get the latest versions
+sudo apt update
+
+# Upgrade installed packages to their latest versions
+sudo apt upgrade -y
+
+# Install MySQL database server
+sudo apt install mysql-server
+
+# Secure MySQL installation (set root password, remove test DB, etc.)
+sudo mysql_secure_installation
+
+# Login to MySQL as root
+sudo mysql -u root -p
+
+# Create a database for WordPress
+CREATE DATABASE wordpress;
+
+# Create a new MySQL user for WordPress
+CREATE USER 'wpuser'@'%' IDENTIFIED BY 'password';
+
+# Grant all privileges to the WordPress user
+GRANT ALL PRIVILEGES ON wordpress.* TO 'wpuser'@'%';
+
+# Apply privilege changes
+FLUSH PRIVILEGES;
+
+# Exit MySQL
+EXIT;
+
+# Edit MySQL configuration to allow remote connections
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+# Find the line 'bind-address = 127.0.0.1' and change it to:
+bind-address = 0.0.0.0
+
+# Restart MySQL service to apply changes
+sudo systemctl restart mysql
+
+# Allow MySQL through firewall (if applicable)
+sudo ufw allow 3306/tcp
+
